@@ -1,8 +1,8 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { PessoasStore, RascunhoPessoa } from '../../core/store/pessoas.store';
-import { DebitosStore } from '../../core/store/debitos.store';
 import { DialogService } from '../../shared/services/dialog.service';
+import { mensagemErro } from '../../core/http/mensagem-erro';
 import { Pessoa } from '../../core/models';
 
 const RASCUNHO_VAZIO: RascunhoPessoa = { nome: '', cor: '#3fada0' };
@@ -15,12 +15,22 @@ const RASCUNHO_VAZIO: RascunhoPessoa = { nome: '', cor: '#3fada0' };
 })
 export class PessoasList {
   protected readonly store = inject(PessoasStore);
-  private readonly debitos = inject(DebitosStore);
   private readonly dialog = inject(DialogService);
 
+  protected readonly carregando = signal(true);
   protected readonly editandoId = signal<string | null>(null);
   protected readonly mostrarForm = signal(false);
   protected rascunho: RascunhoPessoa = { ...RASCUNHO_VAZIO };
+
+  constructor() {
+    void this.carregar();
+  }
+
+  private async carregar(): Promise<void> {
+    this.carregando.set(true);
+    await this.store.carregar();
+    this.carregando.set(false);
+  }
 
   protected novo(): void {
     this.rascunho = { ...RASCUNHO_VAZIO };
@@ -39,25 +49,27 @@ export class PessoasList {
     this.editandoId.set(null);
   }
 
-  protected salvar(): void {
+  protected async salvar(): Promise<void> {
     if (!this.rascunho.nome.trim()) return;
-    const id = this.editandoId();
-    if (id) {
-      this.store.atualizar(id, this.rascunho);
-    } else {
-      this.store.criar(this.rascunho);
+    try {
+      const id = this.editandoId();
+      if (id) {
+        await this.store.atualizar(id, this.rascunho);
+      } else {
+        await this.store.criar(this.rascunho);
+      }
+      this.cancelar();
+    } catch (e) {
+      await this.dialog.alert(mensagemErro(e));
     }
-    this.cancelar();
   }
 
   protected async excluir(p: Pessoa): Promise<void> {
-    const usada = this.debitos.debitos().some((d) => d.pessoaId === p.id);
-    if (usada) {
-      await this.dialog.alert(`Não é possível excluir "${p.nome}": ela está associada a débitos existentes.`);
-      return;
-    }
-    if (await this.dialog.confirm(`Excluir "${p.nome}"?`)) {
-      this.store.remover(p.id);
+    if (!(await this.dialog.confirm(`Excluir "${p.nome}"?`))) return;
+    try {
+      await this.store.remover(p.id);
+    } catch (e) {
+      await this.dialog.alert(mensagemErro(e));
     }
   }
 }

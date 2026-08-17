@@ -1,10 +1,11 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, effect, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CartoesStore } from '../../core/store/cartoes.store';
 import { FaturasStore } from '../../core/store/faturas.store';
 import { DebitosStore } from '../../core/store/debitos.store';
 import { formatarMes } from '../../shared/utils/mes';
 import { centavosParaBRL } from '../../shared/utils/currency';
+import { Fatura } from '../../core/models';
 
 @Component({
   selector: 'app-historico-list',
@@ -14,18 +15,38 @@ import { centavosParaBRL } from '../../shared/utils/currency';
 })
 export class HistoricoList {
   protected readonly cartoesStore = inject(CartoesStore);
-  protected readonly faturasStore = inject(FaturasStore);
+  private readonly faturasStore = inject(FaturasStore);
   private readonly debitosStore = inject(DebitosStore);
 
   protected readonly formatarMes = formatarMes;
   protected readonly centavosParaBRL = centavosParaBRL;
 
+  protected readonly carregando = signal(true);
   protected readonly filtroCartaoId = signal<string | null>(null);
+  protected readonly faturas = signal<Fatura[]>([]);
+  protected readonly totaisPorFatura = signal<Record<string, number>>({});
 
-  protected readonly faturas = computed(() => {
-    const filtro = this.filtroCartaoId();
-    return this.faturasStore.fechadas(filtro ? { cartaoId: filtro } : undefined);
-  });
+  constructor() {
+    void this.cartoesStore.carregar();
+    effect(() => {
+      const filtro = this.filtroCartaoId();
+      void this.carregar(filtro);
+    });
+  }
+
+  private async carregar(filtro: string | null): Promise<void> {
+    this.carregando.set(true);
+    const lista = await this.faturasStore.fechadas(filtro ? { cartaoId: filtro } : undefined);
+    this.faturas.set(lista);
+
+    const totais = await Promise.all(
+      lista.map(
+        async (f) => [f.id, (await this.debitosStore.porFatura(f.id)).reduce((s, d) => s + d.valor, 0)] as const,
+      ),
+    );
+    this.totaisPorFatura.set(Object.fromEntries(totais));
+    this.carregando.set(false);
+  }
 
   protected nomeCartao(cartaoId: string): string {
     return this.cartoesStore.porId(cartaoId)?.nome ?? 'Cartão removido';
@@ -36,6 +57,6 @@ export class HistoricoList {
   }
 
   protected totalFatura(faturaId: string): number {
-    return this.debitosStore.porFatura(faturaId).reduce((s, d) => s + d.valor, 0);
+    return this.totaisPorFatura()[faturaId] ?? 0;
   }
 }

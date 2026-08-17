@@ -1,0 +1,46 @@
+<div class="min-h-screen flex items-center justify-center px-4">
+  <form
+    (ngSubmit)="entrar()"
+    class="w-full max-w-sm rounded-[10px] border border-hair p-7"
+    [style.background]="'linear-gradient(155deg, var(--color-panel-2), var(--color-panel))'"
+  >
+    <p class="font-display uppercase tracking-[0.16em] text-xs text-brass font-bold mb-1.5">Contas</p>
+    <h1 class="font-display text-xl font-extrabold tracking-tight mb-6">Entrar</h1>
+
+    <label class="text-xs text-ink-soft font-semibold block mb-4">
+      E-mail
+      <input
+        type="email"
+        name="email"
+        [(ngModel)]="email"
+        required
+        autocomplete="username"
+        class="mt-1 w-full bg-bg border border-hair rounded-md px-3 py-2 text-sm text-ink"
+      />
+    </label>
+
+    <label class="text-xs text-ink-soft font-semibold block mb-2">
+      Senha
+      <input
+        type="password"
+        name="senha"
+        [(ngModel)]="senha"
+        required
+        autocomplete="current-password"
+        class="mt-1 w-full bg-bg border border-hair rounded-md px-3 py-2 text-sm text-ink"
+      />
+    </label>
+
+    @if (erro(); as msg) {
+      <p class="text-xs text-red-400 mt-3">{{ msg }}</p>
+    }
+
+    <button
+      type="submit"
+      [disabled]="carregando()"
+      class="mt-6 w-full text-sm font-semibold bg-brass text-bg px-4 py-2.5 rounded-md hover:opacity-90 transition disabled:opacity-50"
+    >
+      {{ carregando() ? 'Entrando…' : 'Entrar' }}
+    </button>
+  </form>
+</div>

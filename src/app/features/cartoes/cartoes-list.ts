@@ -4,7 +4,10 @@ import { FormsModule } from '@angular/forms';
 import { CartoesStore, RascunhoCartao } from '../../core/store/cartoes.store';
 import { FaturasStore } from '../../core/store/faturas.store';
 import { DialogService } from '../../shared/services/dialog.service';
+import { mensagemErro } from '../../core/http/mensagem-erro';
 import { Cartao } from '../../core/models';
+
+type StatusFatura = 'aberta' | 'fechada' | 'nenhuma';
 
 const RASCUNHO_VAZIO: RascunhoCartao = {
   nome: '',
@@ -21,16 +24,41 @@ const RASCUNHO_VAZIO: RascunhoCartao = {
 })
 export class CartoesList {
   protected readonly store = inject(CartoesStore);
-  protected readonly faturas = inject(FaturasStore);
+  private readonly faturas = inject(FaturasStore);
   private readonly dialog = inject(DialogService);
+
+  protected readonly carregando = signal(true);
+  protected readonly statusPorCartao = signal<Record<string, StatusFatura>>({});
 
   protected readonly editandoId = signal<string | null>(null);
   protected readonly mostrarForm = signal(false);
   protected rascunho: RascunhoCartao = { ...RASCUNHO_VAZIO };
 
-  protected statusFatura(cartaoId: string): 'aberta' | 'fechada' | 'nenhuma' {
-    if (this.faturas.aberta(cartaoId)) return 'aberta';
-    return this.faturas.doCartao(cartaoId).length > 0 ? 'fechada' : 'nenhuma';
+  constructor() {
+    void this.carregar();
+  }
+
+  private async carregar(): Promise<void> {
+    this.carregando.set(true);
+    await this.store.carregar();
+    await this.carregarStatusFaturas();
+    this.carregando.set(false);
+  }
+
+  private async carregarStatusFaturas(): Promise<void> {
+    const entradas = await Promise.all(
+      this.store.cartoes().map(async (c): Promise<[string, StatusFatura]> => {
+        const aberta = await this.faturas.aberta(c.id);
+        if (aberta) return [c.id, 'aberta'];
+        const todas = await this.faturas.doCartao(c.id);
+        return [c.id, todas.length > 0 ? 'fechada' : 'nenhuma'];
+      }),
+    );
+    this.statusPorCartao.set(Object.fromEntries(entradas));
+  }
+
+  protected statusFatura(cartaoId: string): StatusFatura {
+    return this.statusPorCartao()[cartaoId] ?? 'nenhuma';
   }
 
   protected novo(): void {
@@ -55,24 +83,32 @@ export class CartoesList {
     this.editandoId.set(null);
   }
 
-  protected salvar(): void {
+  protected async salvar(): Promise<void> {
     if (!this.rascunho.nome.trim()) return;
-    const id = this.editandoId();
-    if (id) {
-      this.store.atualizar(id, this.rascunho);
-    } else {
-      this.store.criar(this.rascunho);
+    try {
+      const id = this.editandoId();
+      if (id) {
+        await this.store.atualizar(id, this.rascunho);
+      } else {
+        const criado = await this.store.criar(this.rascunho);
+        this.statusPorCartao.update((atual) => ({ ...atual, [criado.id]: 'nenhuma' }));
+      }
+      this.cancelar();
+    } catch (e) {
+      await this.dialog.alert(mensagemErro(e));
     }
-    this.cancelar();
   }
 
   protected async excluir(c: Cartao): Promise<void> {
-    if (this.faturas.doCartao(c.id).length > 0) {
-      await this.dialog.alert(`Não é possível excluir "${c.nome}": existem faturas vinculadas a este cartão.`);
-      return;
-    }
-    if (await this.dialog.confirm(`Excluir o cartão "${c.nome}"?`)) {
-      this.store.remover(c.id);
+    if (!(await this.dialog.confirm(`Excluir o cartão "${c.nome}"?`))) return;
+    try {
+      await this.store.remover(c.id);
+      this.statusPorCartao.update((atual) => {
+        const { [c.id]: _removido, ...resto } = atual;
+        return resto;
+      });
+    } catch (e) {
+      await this.dialog.alert(mensagemErro(e));
     }
   }
 }

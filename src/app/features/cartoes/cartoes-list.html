@@ -84,6 +84,9 @@
     </form>
   }
 
+  @if (carregando()) {
+    <p class="text-ink-soft text-sm">Carregando…</p>
+  }
   <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
     @for (c of store.cartoes(); track c.id) {
       <div

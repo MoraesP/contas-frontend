@@ -1,12 +1,18 @@
+import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
+import { environment } from '../../../environments/environment';
 import { CartoesStore } from '../../core/store/cartoes.store';
-import { PessoasStore } from '../../core/store/pessoas.store';
-import { CategoriasStore } from '../../core/store/categorias.store';
-import { FaturasStore } from '../../core/store/faturas.store';
-import { DebitosStore } from '../../core/store/debitos.store';
-import { Debito } from '../../core/models';
+import { TipoDebito } from '../../core/models';
 
-export interface DebitoView extends Debito {
+export interface DebitoDashboard {
+  id: string;
+  descricao: string;
+  valor: number;
+  tipo: TipoDebito;
+  parcelaAtual?: number;
+  numeroParcelas?: number;
+  cartaoId: string;
   cartaoNome: string;
   cartaoCor: string;
   pessoaNome: string;
@@ -19,118 +25,82 @@ export interface TotalAgrupado {
   total: number;
 }
 
+interface RespostaDashboard {
+  totalMes: number;
+  totalMesAnterior: number;
+  variacaoPercentual: number;
+  porCartao: TotalAgrupado[];
+  porCategoria: TotalAgrupado[];
+  porPessoa: TotalAgrupado[];
+  debitos: DebitoDashboard[];
+}
+
+const URL = `${environment.apiBaseUrl}/dashboard`;
+
 /**
- * Fonte dos dados do dashboard. Lê direto das stores compartilhadas
- * (core/store/*), não de cópias próprias — assim reflete o que for
- * criado/editado nas telas de cartões, pessoas e faturas.
- *
- * "Mês atual" aqui não é um mês-calendário fixo: como cada cartão abre e
- * fecha seu próprio mês de forma independente (ver docs/specs/faturas.md),
- * o dashboard soma os débitos de todas as faturas com status `aberta` de
- * cada cartão. "Mês anterior" é a última fatura fechada de cada cartão.
+ * Busca o dashboard pronto do backend (agregação sobre faturas abertas — ver
+ * docs/specs/dashboard.md) numa tacada só, e filtra por cartão selecionado
+ * no cliente, sobre os dados já carregados — sem round-trip a cada clique.
  */
 @Injectable({ providedIn: 'root' })
 export class DashboardDataService {
+  private readonly http = inject(HttpClient);
   private readonly cartoesStore = inject(CartoesStore);
-  private readonly pessoasStore = inject(PessoasStore);
-  private readonly categoriasStore = inject(CategoriasStore);
-  private readonly faturasStore = inject(FaturasStore);
-  private readonly debitosStore = inject(DebitosStore);
 
+  private readonly _dados = signal<RespostaDashboard | null>(null);
+  readonly carregando = signal(false);
   readonly cartaoSelecionadoId = signal<string | null>(null);
+
+  async carregar(): Promise<void> {
+    this.carregando.set(true);
+    try {
+      const dados = await firstValueFrom(this.http.get<RespostaDashboard>(URL));
+      this._dados.set(dados);
+    } finally {
+      this.carregando.set(false);
+    }
+  }
 
   readonly listaCartoes = computed(() => this.cartoesStore.cartoes());
 
-  private readonly faturaParaCartao = computed(() => {
-    const map = new Map<string, string>();
-    for (const f of this.faturasStore.faturas()) map.set(f.id, f.cartaoId);
-    return map;
-  });
-
-  private readonly faturasAbertasIds = computed(
-    () => new Set(this.faturasStore.faturas().filter((f) => f.status === 'aberta').map((f) => f.id)),
-  );
-
-  private readonly debitosDoMes = computed(() => {
-    const abertas = this.faturasAbertasIds();
-    return this.debitosStore.debitos().filter((d) => abertas.has(d.faturaId));
-  });
-
-  private readonly debitosEnriquecidos = computed<DebitoView[]>(() => {
-    const faturaCartao = this.faturaParaCartao();
-    const cartoesPorId = new Map(this.cartoesStore.cartoes().map((c) => [c.id, c]));
-    const pessoasPorId = new Map(this.pessoasStore.pessoas().map((p) => [p.id, p]));
-    const categoriasPorId = new Map(this.categoriasStore.categorias().map((c) => [c.id, c]));
-
-    return this.debitosDoMes().map((d) => {
-      const cartaoId = faturaCartao.get(d.faturaId);
-      const cartao = cartaoId ? cartoesPorId.get(cartaoId) : undefined;
-      return {
-        ...d,
-        cartaoNome: cartao?.nome ?? 'Cartão desconhecido',
-        cartaoCor: cartao?.corCaracteristica ?? '#8E8B85',
-        pessoaNome: d.pessoaId ? (pessoasPorId.get(d.pessoaId)?.nome ?? 'Pessoa removida') : 'Sem pessoa',
-        categoriaNome: d.categoriaId
-          ? (categoriasPorId.get(d.categoriaId)?.nome ?? 'Categoria removida')
-          : 'Sem categoria',
-      };
-    });
-  });
-
-  readonly debitosVisiveis = computed<DebitoView[]>(() => {
+  readonly debitosVisiveis = computed<DebitoDashboard[]>(() => {
+    const dados = this._dados();
+    if (!dados) return [];
     const id = this.cartaoSelecionadoId();
-    const todos = this.debitosEnriquecidos();
-    return id ? todos.filter((d) => this.faturaParaCartao().get(d.faturaId) === id) : todos;
+    return id ? dados.debitos.filter((d) => d.cartaoId === id) : dados.debitos;
   });
 
-  readonly totalMes = computed(() => this.debitosEnriquecidos().reduce((s, d) => s + d.valor, 0));
+  readonly totalMes = computed(() => this._dados()?.totalMes ?? 0);
+  readonly variacaoPercentual = computed(() => this._dados()?.variacaoPercentual ?? 0);
 
   readonly totalCartaoSelecionadoOuMes = computed(() => {
     const id = this.cartaoSelecionadoId();
     return id ? this.totalPorCartao(id) : this.totalMes();
   });
 
-  readonly totalMesAnterior = computed(() => {
-    let total = 0;
-    for (const c of this.cartoesStore.cartoes()) {
-      const anterior = this.faturasStore.ultimaFechada(c.id);
-      if (anterior) total += this.debitosStore.porFatura(anterior.id).reduce((s, d) => s + d.valor, 0);
-    }
-    return total;
-  });
-
-  readonly variacaoPercentual = computed(() => {
-    const anterior = this.totalMesAnterior();
-    return anterior === 0 ? 0 : ((this.totalMes() - anterior) / anterior) * 100;
-  });
-
-  readonly porCategoria = computed<TotalAgrupado[]>(() => this.agruparPor('categoriaId', 'categoriaNome'));
-  readonly porPessoa = computed<TotalAgrupado[]>(() => this.agruparPor('pessoaId', 'pessoaNome'));
+  readonly porCategoria = computed<TotalAgrupado[]>(() => this.agruparVisiveis('categoriaNome'));
+  readonly porPessoa = computed<TotalAgrupado[]>(() => this.agruparVisiveis('pessoaNome'));
 
   readonly cartaoSelecionado = computed(() => {
     const id = this.cartaoSelecionadoId();
-    return id ? (this.cartoesStore.cartoes().find((c) => c.id === id) ?? null) : null;
+    return id ? (this.cartoesStore.porId(id) ?? null) : null;
   });
 
   totalPorCartao(cartaoId: string): number {
-    const faturaCartao = this.faturaParaCartao();
-    return this.debitosEnriquecidos()
-      .filter((d) => faturaCartao.get(d.faturaId) === cartaoId)
-      .reduce((s, d) => s + d.valor, 0);
+    return this._dados()?.porCartao.find((c) => c.id === cartaoId)?.total ?? 0;
   }
 
   selecionarCartao(id: string): void {
     this.cartaoSelecionadoId.update((atual) => (atual === id ? null : id));
   }
 
-  private agruparPor(chave: 'categoriaId' | 'pessoaId', nomeChave: 'categoriaNome' | 'pessoaNome'): TotalAgrupado[] {
+  private agruparVisiveis(chaveNome: 'categoriaNome' | 'pessoaNome'): TotalAgrupado[] {
     const mapa = new Map<string, TotalAgrupado>();
     for (const d of this.debitosVisiveis()) {
-      const id = d[chave] ?? 'sem';
-      const nome = d[nomeChave];
-      const atual = mapa.get(id) ?? { id, nome, total: 0 };
+      const nome = d[chaveNome];
+      const atual = mapa.get(nome) ?? { id: nome, nome, total: 0 };
       atual.total += d.valor;
-      mapa.set(id, atual);
+      mapa.set(nome, atual);
     }
     return [...mapa.values()].sort((a, b) => b.total - a.total);
   }

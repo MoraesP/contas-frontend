@@ -1,5 +1,7 @@
 <div class="max-w-4xl mx-auto p-6 md:p-10">
-  @if (fatura(); as f) {
+  @if (carregando()) {
+    <p class="text-ink-soft text-sm">Carregando…</p>
+  } @else if (fatura(); as f) {
     <a routerLink="/historico" class="text-xs text-ink-soft hover:text-ink transition">← Histórico</a>
     <p class="font-display uppercase tracking-[0.16em] text-xs text-brass font-bold mt-3 mb-1.5">
       {{ cartao()?.nome }} · {{ formatarMes(f.mesReferencia) }} · fechada

@@ -1,53 +1,57 @@
-import { Injectable, signal } from '@angular/core';
-import { Fatura, StatusFatura } from '../models';
-import { MOCK_FATURAS, MOCK_FATURAS_ANTERIORES } from '../mock/mock-data';
-import { novoId } from '../../shared/utils/id';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
+import { environment } from '../../../environments/environment';
+import { normalizarId } from '../http/normalizar-id';
+import { Debito, Fatura } from '../models';
 
+const URL_CARTOES = `${environment.apiBaseUrl}/cartoes`;
+const URL_FATURAS = `${environment.apiBaseUrl}/faturas`;
+
+/**
+ * Não existe endpoint pra "todas as faturas" — diferente de Cartão/Pessoa/
+ * Categoria, não dá pra manter um cache global aqui. Cada método busca sob
+ * demanda; quem consome guarda o resultado num signal local (ver
+ * fatura-workspace.ts, historico-list.ts, historico-detail.ts).
+ */
 @Injectable({ providedIn: 'root' })
 export class FaturasStore {
-  private readonly _faturas = signal<Fatura[]>([...MOCK_FATURAS_ANTERIORES, ...MOCK_FATURAS]);
-  readonly faturas = this._faturas.asReadonly();
+  private readonly http = inject(HttpClient);
 
-  porId(id: string): Fatura | undefined {
-    return this._faturas().find((f) => f.id === id);
-  }
-
-  /** Todas as faturas de um cartão, ordenadas da mais antiga pra mais recente. */
-  doCartao(cartaoId: string): Fatura[] {
-    return this._faturas()
-      .filter((f) => f.cartaoId === cartaoId)
-      .sort((a, b) => a.mesReferencia.localeCompare(b.mesReferencia));
-  }
-
-  aberta(cartaoId: string): Fatura | undefined {
-    return this._faturas().find((f) => f.cartaoId === cartaoId && f.status === 'aberta');
-  }
-
-  ultimaFechada(cartaoId: string): Fatura | undefined {
-    const fechadas = this.doCartao(cartaoId).filter((f) => f.status === 'fechada');
-    return fechadas.at(-1);
-  }
-
-  /** Faturas fechadas de todos os cartões (ou só de um, se filtrado), mais recentes primeiro. */
-  fechadas(filtro?: { cartaoId?: string }): Fatura[] {
-    return this._faturas()
-      .filter((f) => f.status === 'fechada' && (!filtro?.cartaoId || f.cartaoId === filtro.cartaoId))
-      .sort((a, b) => b.mesReferencia.localeCompare(a.mesReferencia));
-  }
-
-  criar(cartaoId: string, mesReferencia: string): Fatura {
-    const fatura: Fatura = { id: novoId('fatura'), cartaoId, mesReferencia, status: 'aberta' };
-    this._faturas.update((atual) => [...atual, fatura]);
-    return fatura;
-  }
-
-  fechar(id: string): void {
-    this._faturas.update((atual) =>
-      atual.map((f) =>
-        f.id === id
-          ? { ...f, status: 'fechada' as StatusFatura, dataFechamentoReal: new Date().toISOString() }
-          : f,
-      ),
+  async doCartao(cartaoId: string): Promise<Fatura[]> {
+    const lista = await firstValueFrom(
+      this.http.get<Record<string, unknown>[]>(`${URL_CARTOES}/${cartaoId}/faturas`),
     );
+    return lista.map((d) => normalizarId<Fatura>(d));
+  }
+
+  async aberta(cartaoId: string): Promise<Fatura | null> {
+    try {
+      const doc = await firstValueFrom(
+        this.http.get<Record<string, unknown>>(`${URL_CARTOES}/${cartaoId}/faturas/aberta`),
+      );
+      return normalizarId<Fatura>(doc);
+    } catch (e) {
+      if (e instanceof HttpErrorResponse && e.status === 404) return null;
+      throw e;
+    }
+  }
+
+  async fechadas(filtro?: { cartaoId?: string }): Promise<Fatura[]> {
+    const params = new URLSearchParams({ status: 'fechada' });
+    if (filtro?.cartaoId) params.set('cartaoId', filtro.cartaoId);
+    const lista = await firstValueFrom(this.http.get<Record<string, unknown>[]>(`${URL_FATURAS}?${params}`));
+    return lista.map((d) => normalizarId<Fatura>(d));
+  }
+
+  async porId(id: string): Promise<Fatura & { debitos: Debito[] }> {
+    const doc = await firstValueFrom(
+      this.http.get<Record<string, unknown> & { debitos: Record<string, unknown>[] }>(`${URL_FATURAS}/${id}`),
+    );
+    const { debitos, ...resto } = doc;
+    return {
+      ...normalizarId<Fatura>(resto),
+      debitos: debitos.map((d) => normalizarId<Debito>(d)),
+    };
   }
 }

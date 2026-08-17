@@ -1,4 +1,7 @@
 <div class="max-w-4xl mx-auto p-6 md:p-10">
+@if (data.carregando()) {
+  <p class="text-ink-soft text-sm">Carregando…</p>
+} @else {
   <p class="font-display uppercase tracking-[0.16em] text-xs text-brass font-bold mb-1.5">
     Faturas em aberto
     @if (data.cartaoSelecionado(); as c) {
@@ -105,4 +108,5 @@
       }
     </div>
   </div>
+}
 </div>

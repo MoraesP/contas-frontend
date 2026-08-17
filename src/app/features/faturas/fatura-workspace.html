@@ -1,5 +1,7 @@
 <div class="max-w-4xl mx-auto p-6 md:p-10">
-  @if (cartao(); as c) {
+  @if (!cartoesStore.carregado() || carregando()) {
+    <p class="text-ink-soft text-sm">Carregando…</p>
+  } @else if (cartao(); as c) {
     <div class="flex items-center gap-3 mb-1">
       <div
         class="w-5 h-3.5 rounded-[3px]"
@@ -188,13 +190,13 @@
             />
           </label>
 
-          @if (candidatosRollover().length > 0) {
+          @if (candidatosRolloverDisponiveis().length > 0) {
             <p class="text-xs text-ink-soft font-semibold mb-2">
               Parcelas e contas fixas em aberto de {{ formatarMes(ultimaFechada()!.mesReferencia) }} — escolha quais
               continuam nesta fatura:
             </p>
             <div class="mb-5">
-              @for (d of candidatosRollover(); track d.id) {
+              @for (d of candidatosRolloverDisponiveis(); track d.id) {
                 <label class="flex items-center justify-between py-2.5 border-b border-hair text-sm cursor-pointer">
                   <span class="flex items-center gap-2.5">
                     <input

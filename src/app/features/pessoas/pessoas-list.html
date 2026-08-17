@@ -55,6 +55,9 @@
     </form>
   }
 
+  @if (carregando()) {
+    <p class="text-ink-soft text-sm">Carregando…</p>
+  }
   <div class="flex flex-col gap-1">
     @for (p of store.pessoas(); track p.id) {
       <div class="flex justify-between items-center py-3 border-b border-hair text-sm">

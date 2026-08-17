@@ -1,63 +1,56 @@
-import { Injectable, signal } from '@angular/core';
-import { Debito } from '../models';
-import { MOCK_DEBITOS, MOCK_DEBITOS_ANTERIORES } from '../mock/mock-data';
-import { novoId } from '../../shared/utils/id';
+import { HttpClient } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
+import { environment } from '../../../environments/environment';
+import { normalizarId } from '../http/normalizar-id';
+import { Debito, TipoDebito } from '../models';
 
-export type RascunhoDebito = Omit<Debito, 'id' | 'compraId' | 'parcelaAtual'>;
+const URL_FATURAS = `${environment.apiBaseUrl}/faturas`;
+const URL_DEBITOS = `${environment.apiBaseUrl}/debitos`;
+
+interface CamposComuns {
+  descricao: string;
+  dataCompra: string;
+  pessoaId?: string;
+  categoriaId?: string;
+}
+
+export type NovoDebito =
+  | (CamposComuns & { tipo: Exclude<TipoDebito, 'parcelado'>; valor: number })
+  | (CamposComuns & { tipo: 'parcelado'; valorTotal: number; numeroParcelas: number });
+
+export interface PatchDebito {
+  descricao?: string;
+  valor?: number;
+  pessoaId?: string;
+  categoriaId?: string;
+  dataCompra?: string;
+}
 
 @Injectable({ providedIn: 'root' })
 export class DebitosStore {
-  private readonly _debitos = signal<Debito[]>([...MOCK_DEBITOS_ANTERIORES, ...MOCK_DEBITOS]);
-  readonly debitos = this._debitos.asReadonly();
+  private readonly http = inject(HttpClient);
 
-  porFatura(faturaId: string): Debito[] {
-    return this._debitos().filter((d) => d.faturaId === faturaId);
+  async porFatura(faturaId: string): Promise<Debito[]> {
+    const lista = await firstValueFrom(
+      this.http.get<Record<string, unknown>[]>(`${URL_FATURAS}/${faturaId}/debitos`),
+    );
+    return lista.map((d) => normalizarId<Debito>(d));
   }
 
-  criar(input: RascunhoDebito): Debito {
-    const id = novoId('debito');
-    const debito: Debito = {
-      ...input,
-      id,
-      parcelaAtual: input.tipo === 'parcelado' ? 1 : undefined,
-      compraId: input.tipo === 'parcelado' ? id : undefined,
-    };
-    this._debitos.update((atual) => [...atual, debito]);
-    return debito;
+  async criar(faturaId: string, dados: NovoDebito): Promise<Debito> {
+    const doc = await firstValueFrom(
+      this.http.post<Record<string, unknown>>(`${URL_FATURAS}/${faturaId}/debitos`, dados),
+    );
+    return normalizarId<Debito>(doc);
   }
 
-  atualizar(id: string, patch: Partial<RascunhoDebito>): void {
-    this._debitos.update((atual) => atual.map((d) => (d.id === id ? { ...d, ...patch } : d)));
+  async atualizar(id: string, patch: PatchDebito): Promise<Debito> {
+    const doc = await firstValueFrom(this.http.put<Record<string, unknown>>(`${URL_DEBITOS}/${id}`, patch));
+    return normalizarId<Debito>(doc);
   }
 
-  remover(id: string): void {
-    this._debitos.update((atual) => atual.filter((d) => d.id !== id));
-  }
-
-  /**
-   * Rola os débitos indicados (parcelados avançam parcela, mesmo compraId;
-   * fixos são clonados) pra uma nova fatura. A escolha de quais ids rolar é
-   * feita pelo usuário (ver fatura-workflow.service.ts::candidatosRollover).
-   */
-  rolarSelecionados(ids: string[], novaFaturaId: string): Debito[] {
-    const porId = new Map(this._debitos().map((d) => [d.id, d]));
-    const criados: Debito[] = [];
-
-    for (const id of ids) {
-      const d = porId.get(id);
-      if (!d) continue;
-      if (d.tipo === 'parcelado') {
-        criados.push(this.clonar(d, novaFaturaId, { parcelaAtual: (d.parcelaAtual ?? 0) + 1 }));
-      } else if (d.tipo === 'fixo') {
-        criados.push(this.clonar(d, novaFaturaId, {}));
-      }
-    }
-    return criados;
-  }
-
-  private clonar(origem: Debito, novaFaturaId: string, overrides: Partial<Debito>): Debito {
-    const clone: Debito = { ...origem, id: novoId('debito'), faturaId: novaFaturaId, ...overrides };
-    this._debitos.update((atual) => [...atual, clone]);
-    return clone;
+  async remover(id: string): Promise<void> {
+    await firstValueFrom(this.http.delete(`${URL_DEBITOS}/${id}`));
   }
 }
