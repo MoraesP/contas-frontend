@@ -1,0 +1,28 @@
+<div class="max-w-4xl mx-auto p-6 md:p-10">
+  @if (fatura(); as f) {
+    <a routerLink="/historico" class="text-xs text-ink-soft hover:text-ink transition">← Histórico</a>
+    <p class="font-display uppercase tracking-[0.16em] text-xs text-brass font-bold mt-3 mb-1.5">
+      {{ cartao()?.nome }} · {{ formatarMes(f.mesReferencia) }} · fechada
+    </p>
+    <div class="font-display text-4xl font-extrabold tracking-tight num mb-6">{{ centavosParaBRL(total()) }}</div>
+
+    <div>
+      @for (d of debitos(); track d.id) {
+        <div class="flex justify-between items-center py-2.5 border-b border-hair text-sm">
+          <div>
+            <div class="font-semibold">{{ d.descricao }}</div>
+            <div class="text-ink-soft text-xs mt-0.5">{{ nomePessoa(d.pessoaId) }} · {{ nomeCategoria(d.categoriaId) }}</div>
+          </div>
+          <div class="font-semibold num flex items-center">
+            {{ centavosParaBRL(d.valor) }}
+            <app-tipo-badge [tipo]="d.tipo" [parcelaAtual]="d.parcelaAtual" [numeroParcelas]="d.numeroParcelas" />
+          </div>
+        </div>
+      } @empty {
+        <p class="text-ink-soft text-sm py-4">Nenhum débito nesta fatura.</p>
+      }
+    </div>
+  } @else {
+    <p class="text-ink-soft text-sm">Fatura não encontrada.</p>
+  }
+</div>

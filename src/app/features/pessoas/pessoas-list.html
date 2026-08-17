@@ -1,0 +1,78 @@
+<div class="max-w-4xl mx-auto p-6 md:p-10">
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="font-display text-xl font-extrabold tracking-tight">Pessoas</h1>
+    <button
+      type="button"
+      (click)="novo()"
+      class="text-sm font-semibold bg-brass text-bg px-4 py-2 rounded-md hover:opacity-90 transition"
+    >
+      + Nova pessoa
+    </button>
+  </div>
+
+  @if (mostrarForm()) {
+    <form
+      (ngSubmit)="salvar()"
+      class="rounded-[10px] border border-hair p-5 mb-6"
+      [style.background]="'linear-gradient(155deg, var(--color-panel-2), var(--color-panel))'"
+    >
+      <h2 class="text-sm font-bold mb-4">{{ editandoId() ? 'Editar pessoa' : 'Nova pessoa' }}</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+        <label class="text-xs text-ink-soft font-semibold">
+          Nome
+          <input
+            name="nome"
+            [(ngModel)]="rascunho.nome"
+            required
+            class="mt-1 w-full bg-bg border border-hair rounded-md px-3 py-2 text-sm text-ink"
+          />
+        </label>
+        <label class="text-xs text-ink-soft font-semibold">
+          Cor
+          <div class="mt-1 flex items-center gap-2">
+            <input type="color" name="cor" [(ngModel)]="rascunho.cor" class="h-9 w-12 bg-bg border border-hair rounded-md" />
+            <input
+              type="text"
+              name="corHex"
+              [(ngModel)]="rascunho.cor"
+              class="flex-1 bg-bg border border-hair rounded-md px-3 py-2 text-sm text-ink num"
+            />
+          </div>
+        </label>
+      </div>
+      <div class="flex gap-2 justify-end">
+        <button
+          type="button"
+          (click)="cancelar()"
+          class="text-sm font-semibold text-ink-soft px-4 py-2 rounded-md hover:text-ink transition"
+        >
+          Cancelar
+        </button>
+        <button type="submit" class="text-sm font-semibold bg-teal text-bg px-4 py-2 rounded-md hover:opacity-90 transition">
+          Salvar
+        </button>
+      </div>
+    </form>
+  }
+
+  <div class="flex flex-col gap-1">
+    @for (p of store.pessoas(); track p.id) {
+      <div class="flex justify-between items-center py-3 border-b border-hair text-sm">
+        <div class="flex items-center gap-2.5">
+          <span class="w-2.5 h-2.5 rounded-full" [style.background]="p.cor || '#8E8B85'"></span>
+          <span class="font-semibold">{{ p.nome }}</span>
+        </div>
+        <div class="flex gap-3">
+          <button type="button" (click)="editar(p)" class="text-xs font-semibold text-ink-soft hover:text-ink transition">
+            Editar
+          </button>
+          <button type="button" (click)="excluir(p)" class="text-xs font-semibold text-ink-soft hover:text-ink transition">
+            Excluir
+          </button>
+        </div>
+      </div>
+    } @empty {
+      <p class="text-ink-soft text-sm">Nenhuma pessoa cadastrada ainda.</p>
+    }
+  </div>
+</div>

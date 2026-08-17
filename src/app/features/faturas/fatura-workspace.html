@@ -1,0 +1,256 @@
+<div class="max-w-4xl mx-auto p-6 md:p-10">
+  @if (cartao(); as c) {
+    <div class="flex items-center gap-3 mb-1">
+      <div
+        class="w-5 h-3.5 rounded-[3px]"
+        [style.background]="'linear-gradient(135deg, ' + c.corCaracteristica + ', ' + c.corCaracteristica + '90)'"
+      ></div>
+      <a routerLink="/cartoes" class="text-xs text-ink-soft hover:text-ink transition">← Cartões</a>
+    </div>
+    <h1 class="font-display text-xl font-extrabold tracking-tight mb-6">{{ c.nome }}</h1>
+
+    @if (faturaAberta(); as fatura) {
+      <div class="flex justify-between items-end flex-wrap gap-4 pb-6 border-b border-hair mb-6">
+        <div>
+          <p class="font-display uppercase tracking-[0.16em] text-xs text-brass font-bold mb-1.5">
+            {{ formatarMes(fatura.mesReferencia) }} · fatura aberta
+          </p>
+          <div class="font-display text-4xl font-extrabold tracking-tight num">{{ centavosParaBRL(total()) }}</div>
+        </div>
+        <div class="flex gap-2">
+          <button
+            type="button"
+            (click)="novoDebito()"
+            class="text-sm font-semibold bg-brass text-bg px-4 py-2 rounded-md hover:opacity-90 transition"
+          >
+            + Novo débito
+          </button>
+          <button
+            type="button"
+            (click)="fecharFatura()"
+            class="text-sm font-semibold border border-hair text-ink-soft px-4 py-2 rounded-md hover:text-ink transition"
+          >
+            Fechar fatura
+          </button>
+        </div>
+      </div>
+
+      @if (mostrarForm()) {
+        <form
+          (ngSubmit)="salvarDebito()"
+          class="rounded-[10px] border border-hair p-5 mb-6"
+          [style.background]="'linear-gradient(155deg, var(--color-panel-2), var(--color-panel))'"
+        >
+          <h2 class="text-sm font-bold mb-4">{{ editandoId() ? 'Editar débito' : 'Novo débito' }}</h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <label class="text-xs text-ink-soft font-semibold sm:col-span-2">
+              Descrição
+              <input
+                name="descricao"
+                [(ngModel)]="rascunho.descricao"
+                required
+                class="mt-1 w-full bg-bg border border-hair rounded-md px-3 py-2 text-sm text-ink"
+              />
+            </label>
+            <label class="text-xs text-ink-soft font-semibold">
+              Tipo
+              <select
+                name="tipo"
+                [(ngModel)]="rascunho.tipo"
+                [disabled]="!!editandoId()"
+                class="mt-1 w-full bg-bg border border-hair rounded-md px-3 py-2 text-sm text-ink disabled:opacity-50"
+              >
+                <option value="unico">Parcela única</option>
+                <option value="fixo">Fixo (recorrente)</option>
+                <option value="parcelado">Parcelado</option>
+              </select>
+            </label>
+            <label class="text-xs text-ink-soft font-semibold">
+              {{ editandoId() ? 'Valor desta parcela' : rascunho.tipo === 'parcelado' ? 'Valor total' : 'Valor' }}
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                name="valor"
+                [(ngModel)]="rascunho.valorReais"
+                required
+                class="mt-1 w-full bg-bg border border-hair rounded-md px-3 py-2 text-sm text-ink num"
+              />
+            </label>
+            @if (rascunho.tipo === 'parcelado' && !editandoId()) {
+              <label class="text-xs text-ink-soft font-semibold">
+                Número de parcelas
+                <input
+                  type="number"
+                  min="2"
+                  name="parcelas"
+                  [(ngModel)]="rascunho.numeroParcelas"
+                  required
+                  class="mt-1 w-full bg-bg border border-hair rounded-md px-3 py-2 text-sm text-ink num"
+                />
+              </label>
+            }
+            <label class="text-xs text-ink-soft font-semibold">
+              Data da compra
+              <input
+                type="date"
+                name="data"
+                [(ngModel)]="rascunho.dataCompra"
+                class="mt-1 w-full bg-bg border border-hair rounded-md px-3 py-2 text-sm text-ink num"
+              />
+            </label>
+            <label class="text-xs text-ink-soft font-semibold">
+              Pessoa (opcional)
+              <select
+                name="pessoa"
+                [(ngModel)]="rascunho.pessoaId"
+                class="mt-1 w-full bg-bg border border-hair rounded-md px-3 py-2 text-sm text-ink"
+              >
+                <option value="">—</option>
+                @for (p of pessoasStore.pessoas(); track p.id) {
+                  <option [value]="p.id">{{ p.nome }}</option>
+                }
+              </select>
+            </label>
+            <label class="text-xs text-ink-soft font-semibold">
+              Categoria (opcional)
+              <select
+                name="categoria"
+                [(ngModel)]="rascunho.categoriaId"
+                class="mt-1 w-full bg-bg border border-hair rounded-md px-3 py-2 text-sm text-ink"
+              >
+                <option value="">—</option>
+                @for (cat of categoriasStore.categorias(); track cat.id) {
+                  <option [value]="cat.id">{{ cat.nome }}</option>
+                }
+              </select>
+            </label>
+          </div>
+          <div class="flex gap-2 justify-end">
+            <button
+              type="button"
+              (click)="cancelar()"
+              class="text-sm font-semibold text-ink-soft px-4 py-2 rounded-md hover:text-ink transition"
+            >
+              Cancelar
+            </button>
+            <button type="submit" class="text-sm font-semibold bg-teal text-bg px-4 py-2 rounded-md hover:opacity-90 transition">
+              Salvar
+            </button>
+          </div>
+        </form>
+      }
+
+      <div>
+        @for (d of debitos(); track d.id) {
+          <div class="flex justify-between items-center py-2.5 border-b border-hair text-sm">
+            <div>
+              <div class="font-semibold">{{ d.descricao }}</div>
+              <div class="text-ink-soft text-xs mt-0.5">{{ nomePessoa(d.pessoaId) }} · {{ nomeCategoria(d.categoriaId) }}</div>
+            </div>
+            <div class="flex items-center gap-3">
+              <div class="font-semibold num flex items-center">
+                {{ centavosParaBRL(d.valor) }}
+                <app-tipo-badge [tipo]="d.tipo" [parcelaAtual]="d.parcelaAtual" [numeroParcelas]="d.numeroParcelas" />
+              </div>
+              <button type="button" (click)="editarDebito(d)" class="text-ink-soft hover:text-ink text-xs">editar</button>
+              <button type="button" (click)="removerDebito(d)" class="text-ink-soft hover:text-ink text-xs">excluir</button>
+            </div>
+          </div>
+        } @empty {
+          <p class="text-ink-soft text-sm py-4">Nenhum débito lançado nesta fatura ainda.</p>
+        }
+      </div>
+    } @else {
+      <div
+        class="rounded-[10px] border border-hair p-6"
+        [style.background]="'linear-gradient(155deg, var(--color-panel-2), var(--color-panel))'"
+      >
+        @if (!mostrarFormNovoMes()) {
+          <p class="text-ink-soft text-sm mb-4 text-center">Nenhuma fatura aberta para este cartão.</p>
+          <div class="text-center">
+            <button
+              type="button"
+              (click)="iniciarNovoMes()"
+              class="text-sm font-semibold bg-brass text-bg px-4 py-2 rounded-md hover:opacity-90 transition"
+            >
+              Abrir novo mês
+            </button>
+          </div>
+        } @else {
+          <h2 class="text-sm font-bold mb-4">Abrir novo mês</h2>
+          <label class="text-xs text-ink-soft font-semibold block mb-5 max-w-[220px]">
+            Mês de referência
+            <input
+              type="month"
+              [(ngModel)]="mesEscolhido"
+              class="mt-1 w-full bg-bg border border-hair rounded-md px-3 py-2 text-sm text-ink num"
+            />
+          </label>
+
+          @if (candidatosRollover().length > 0) {
+            <p class="text-xs text-ink-soft font-semibold mb-2">
+              Parcelas e contas fixas em aberto de {{ formatarMes(ultimaFechada()!.mesReferencia) }} — escolha quais
+              continuam nesta fatura:
+            </p>
+            <div class="mb-5">
+              @for (d of candidatosRollover(); track d.id) {
+                <label class="flex items-center justify-between py-2.5 border-b border-hair text-sm cursor-pointer">
+                  <span class="flex items-center gap-2.5">
+                    <input
+                      type="checkbox"
+                      [checked]="candidatosSelecionados().has(d.id)"
+                      (change)="toggleCandidato(d.id)"
+                      class="accent-brass w-4 h-4"
+                    />
+                    <span>
+                      <span class="font-semibold">{{ d.descricao }}</span>
+                      <app-tipo-badge [tipo]="d.tipo" [parcelaAtual]="d.parcelaAtual" [numeroParcelas]="d.numeroParcelas" />
+                    </span>
+                  </span>
+                  <span class="num text-ink-soft">{{ centavosParaBRL(d.valor) }}</span>
+                </label>
+              }
+            </div>
+          } @else {
+            <p class="text-ink-soft text-xs mb-5">
+              Nenhuma parcela em aberto ou conta fixa da fatura anterior pra continuar.
+            </p>
+          }
+
+          <div class="flex gap-2 justify-end">
+            <button
+              type="button"
+              (click)="cancelarNovoMes()"
+              class="text-sm font-semibold text-ink-soft px-4 py-2 rounded-md hover:text-ink transition"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              (click)="confirmarNovoMes()"
+              class="text-sm font-semibold bg-teal text-bg px-4 py-2 rounded-md hover:opacity-90 transition"
+            >
+              Abrir mês
+            </button>
+          </div>
+        }
+      </div>
+    }
+
+    @if (historicoDoCartao().length > 0) {
+      <div class="mt-10">
+        <h2 class="text-xs uppercase tracking-[0.14em] text-ink-soft font-bold mb-3">Faturas fechadas deste cartão</h2>
+        <div class="flex flex-col gap-1">
+          @for (f of historicoDoCartao(); track f.id) {
+            <a [routerLink]="['/historico', f.id]" class="text-sm text-ink-soft hover:text-ink transition py-1">
+              {{ formatarMes(f.mesReferencia) }} →
+            </a>
+          }
+        </div>
+      </div>
+    }
+  } @else {
+    <p class="text-ink-soft text-sm">Cartão não encontrado.</p>
+  }
+</div>

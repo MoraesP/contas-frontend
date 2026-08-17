@@ -1,0 +1,42 @@
+<div class="max-w-4xl mx-auto p-6 md:p-10">
+  <h1 class="font-display text-xl font-extrabold tracking-tight mb-6">Faturas fechadas</h1>
+
+  <div class="flex gap-2 flex-wrap mb-6">
+    <button
+      type="button"
+      (click)="filtroCartaoId.set(null)"
+      class="text-xs font-semibold px-3 py-1.5 rounded-full border transition"
+      [class]="filtroCartaoId() === null ? 'border-brass text-brass' : 'border-hair text-ink-soft'"
+    >
+      Todos
+    </button>
+    @for (c of cartoesStore.cartoes(); track c.id) {
+      <button
+        type="button"
+        (click)="filtroCartaoId.set(c.id)"
+        class="text-xs font-semibold px-3 py-1.5 rounded-full border transition"
+        [class]="filtroCartaoId() === c.id ? 'border-brass text-brass' : 'border-hair text-ink-soft'"
+      >
+        {{ c.nome }}
+      </button>
+    }
+  </div>
+
+  <div class="flex flex-col gap-1">
+    @for (f of faturas(); track f.id) {
+      <a
+        [routerLink]="['/historico', f.id]"
+        class="flex justify-between items-center py-3 border-b border-hair text-sm hover:bg-panel-2 transition rounded-md px-2 -mx-2"
+      >
+        <div class="flex items-center gap-2.5">
+          <span class="w-2 h-2 rounded-full" [style.background]="corCartao(f.cartaoId)"></span>
+          <span class="font-semibold">{{ nomeCartao(f.cartaoId) }}</span>
+          <span class="text-ink-soft">· {{ formatarMes(f.mesReferencia) }}</span>
+        </div>
+        <span class="num text-ink-soft">{{ centavosParaBRL(totalFatura(f.id)) }}</span>
+      </a>
+    } @empty {
+      <p class="text-ink-soft text-sm">Nenhuma fatura fechada ainda.</p>
+    }
+  </div>
+</div>

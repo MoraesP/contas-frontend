@@ -1,0 +1,108 @@
+<div class="max-w-4xl mx-auto p-6 md:p-10">
+  <p class="font-display uppercase tracking-[0.16em] text-xs text-brass font-bold mb-1.5">
+    Faturas em aberto
+    @if (data.cartaoSelecionado(); as c) {
+      <span class="text-ink-soft normal-case tracking-normal font-normal"> · {{ c.nome }}</span>
+    }
+  </p>
+
+  <div class="flex justify-between items-end flex-wrap gap-4 pb-6 border-b border-hair mb-6">
+    <div class="font-display text-4xl font-extrabold tracking-tight num">
+      {{ centavosParaBRL(data.totalCartaoSelecionadoOuMes()) }}
+    </div>
+    <div class="text-teal text-sm font-semibold">
+      ▲ {{ data.variacaoPercentual().toFixed(1) }}% vs. mês anterior
+    </div>
+  </div>
+
+  <div class="flex gap-3.5 flex-wrap mb-6">
+    @for (c of data.listaCartoes(); track c.id) {
+      <div
+        role="button"
+        tabindex="0"
+        (click)="data.selecionarCartao(c.id)"
+        (keydown.enter)="data.selecionarCartao(c.id)"
+        class="flex-1 min-w-[190px] text-left rounded-[10px] border border-hair px-4 pt-4 pb-3.5 transition-transform hover:-translate-y-0.5 cursor-pointer"
+        [style.background]="'linear-gradient(155deg, var(--color-panel-2), var(--color-panel))'"
+        [style.boxShadow]="
+          data.cartaoSelecionadoId() === c.id
+            ? '0 0 0 1.5px ' + c.corCaracteristica + ', 0 8px 22px -8px ' + c.corCaracteristica
+            : 'none'
+        "
+      >
+        <div
+          class="w-6 h-4 rounded-[3px] mb-3.5"
+          [style.background]="'linear-gradient(135deg, ' + c.corCaracteristica + ', ' + c.corCaracteristica + '90)'"
+        ></div>
+        <div class="text-sm font-bold mb-0.5">{{ c.nome }}</div>
+        <div class="text-[0.95rem] text-ink-soft num mb-2.5">{{ centavosParaBRL(data.totalPorCartao(c.id)) }}</div>
+        <a
+          [routerLink]="['/cartoes', c.id, 'fatura']"
+          (click)="$event.stopPropagation()"
+          class="text-xs font-semibold text-brass hover:underline"
+        >
+          Ver fatura →
+        </a>
+      </div>
+    } @empty {
+      <p class="text-ink-soft text-sm">
+        Nenhum cartão cadastrado ainda. <a routerLink="/cartoes" class="text-brass hover:underline">Cadastre um cartão</a>.
+      </p>
+    }
+  </div>
+
+  <div class="mb-6">
+    @for (d of data.debitosVisiveis(); track d.id) {
+      <div class="flex justify-between items-center py-2.5 border-b border-hair text-sm">
+        <div class="flex items-center gap-2.5">
+          <span class="w-1.5 h-1.5 rounded-full shrink-0" [style.background]="d.cartaoCor"></span>
+          <div>
+            <div class="font-semibold">{{ d.descricao }}</div>
+            <div class="text-ink-soft text-xs mt-0.5">{{ d.pessoaNome }} · {{ d.categoriaNome }}</div>
+          </div>
+        </div>
+        <div class="font-semibold num flex items-center">
+          {{ centavosParaBRL(d.valor) }}
+          <app-tipo-badge [tipo]="d.tipo" [parcelaAtual]="d.parcelaAtual" [numeroParcelas]="d.numeroParcelas" />
+        </div>
+      </div>
+    } @empty {
+      <p class="text-ink-soft text-sm py-4">Nenhum débito nesta fatura ainda.</p>
+    }
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+    <div>
+      <h3 class="text-xs uppercase tracking-[0.14em] text-ink-soft font-bold mb-3">Por categoria</h3>
+      @for (t of data.porCategoria(); track t.id) {
+        <div class="flex items-center gap-2.5 text-sm mb-2">
+          <span class="w-[90px] shrink-0 truncate">{{ t.nome }}</span>
+          <span class="flex-1 h-1 rounded-full bg-panel-2 overflow-hidden">
+            <span
+              class="block h-full"
+              [style.background]="'linear-gradient(90deg, var(--color-teal), var(--color-brass))'"
+              [style.width]="larguraBarra(t.total, maiorTotal(data.porCategoria()))"
+            ></span>
+          </span>
+          <span class="w-16 text-right text-ink-soft num">{{ centavosParaBRL(t.total) }}</span>
+        </div>
+      }
+    </div>
+    <div>
+      <h3 class="text-xs uppercase tracking-[0.14em] text-ink-soft font-bold mb-3">Por pessoa</h3>
+      @for (t of data.porPessoa(); track t.id) {
+        <div class="flex items-center gap-2.5 text-sm mb-2">
+          <span class="w-[90px] shrink-0 truncate">{{ t.nome }}</span>
+          <span class="flex-1 h-1 rounded-full bg-panel-2 overflow-hidden">
+            <span
+              class="block h-full"
+              [style.background]="'linear-gradient(90deg, var(--color-teal), var(--color-brass))'"
+              [style.width]="larguraBarra(t.total, maiorTotal(data.porPessoa()))"
+            ></span>
+          </span>
+          <span class="w-16 text-right text-ink-soft num">{{ centavosParaBRL(t.total) }}</span>
+        </div>
+      }
+    </div>
+  </div>
+</div>
