@@ -28,6 +28,18 @@
           />
         </label>
         <label class="text-xs text-ink-soft font-semibold">
+          Código (3 letras)
+          <input
+            name="codigo"
+            [(ngModel)]="rascunho.codigo"
+            required
+            maxlength="3"
+            pattern="[A-Za-z]{3}"
+            placeholder="ex: POR"
+            class="mt-1 w-full bg-bg border border-hair rounded-md px-3 py-2 text-sm text-ink uppercase"
+          />
+        </label>
+        <label class="text-xs text-ink-soft font-semibold">
           Cor característica
           <div class="mt-1 flex items-center gap-2">
             <input
@@ -122,7 +134,10 @@
             }
           }
         </div>
-        <div class="font-bold text-sm mb-1">{{ c.nome }}</div>
+        <div class="font-bold text-sm mb-1">
+          {{ c.nome }}
+          <span class="text-[0.68rem] font-mono text-ink-soft font-normal">{{ c.codigo }}</span>
+        </div>
         <div class="text-ink-soft text-xs mb-4">fecha dia {{ c.dataFechamento }} · vence dia {{ c.dataVencimento }}</div>
         <div class="flex justify-between items-center">
           <a [routerLink]="['/cartoes', c.id, 'fatura']" class="text-xs font-semibold text-brass hover:underline">

@@ -1,6 +1,7 @@
 export interface Cartao {
   id: string;
   nome: string;
+  codigo: string;
   corCaracteristica: string;
   dataFechamento: number;
   dataVencimento: number;

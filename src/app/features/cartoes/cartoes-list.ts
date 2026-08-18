@@ -12,6 +12,7 @@ type StatusFatura = 'aberta' | 'fechada' | 'nenhuma';
 
 const RASCUNHO_VAZIO: RascunhoCartao = {
   nome: '',
+  codigo: '',
   corCaracteristica: '#c9a24b',
   dataFechamento: 1,
   dataVencimento: 10,
@@ -71,6 +72,7 @@ export class CartoesList {
   protected editar(c: Cartao): void {
     this.rascunho = {
       nome: c.nome,
+      codigo: c.codigo,
       corCaracteristica: c.corCaracteristica,
       dataFechamento: c.dataFechamento,
       dataVencimento: c.dataVencimento,
@@ -85,7 +87,8 @@ export class CartoesList {
   }
 
   protected async salvar(): Promise<void> {
-    if (!this.rascunho.nome.trim()) return;
+    if (!this.rascunho.nome.trim() || !/^[A-Za-z]{3}$/.test(this.rascunho.codigo.trim())) return;
+    this.rascunho.codigo = this.rascunho.codigo.trim().toUpperCase();
     try {
       const id = this.editandoId();
       if (id) {
