@@ -15,6 +15,8 @@ import { TipoBadge } from '../../shared/components/tipo-badge';
 import { Skeleton } from '../../shared/components/skeleton';
 import { Debito, Fatura, TipoDebito } from '../../core/models';
 
+type TipoOrdenacao = 'padrao' | 'valor' | 'pessoa' | 'parcela';
+
 interface RascunhoDebito {
   descricao: string;
   valorReais: number | null;
@@ -69,6 +71,32 @@ export class FaturaWorkspace {
   protected readonly candidatosRolloverDisponiveis = signal<Debito[]>([]);
 
   protected readonly total = computed(() => this.debitos().reduce((s, d) => s + d.valor, 0));
+
+  // --- ordenação da lista de débitos ---
+  protected readonly ordenacao = signal<TipoOrdenacao>('padrao');
+  protected readonly debitosOrdenados = computed(() => {
+    const lista = [...this.debitos()];
+    switch (this.ordenacao()) {
+      case 'valor':
+        return lista.sort((a, b) => b.valor - a.valor);
+      case 'pessoa':
+        return lista.sort((a, b) => this.nomePessoa(a.pessoaId).localeCompare(this.nomePessoa(b.pessoaId)));
+      case 'parcela':
+        return lista.sort((a, b) => this.grupoParcela(a) - this.grupoParcela(b) || (b.numeroParcelas ?? 0) - (a.numeroParcelas ?? 0));
+      default:
+        return lista;
+    }
+  });
+
+  private grupoParcela(d: Debito): number {
+    if (d.tipo === 'parcelado') return 0;
+    if (d.tipo === 'unico') return 1;
+    return 2; // fixo
+  }
+
+  // --- exclusão em lote ---
+  protected readonly mostrarModalExcluirLote = signal(false);
+  protected readonly selecionadosExcluirLote = signal<Set<string>>(new Set());
 
   // --- form de débito (criar/editar) ---
   protected readonly mostrarForm = signal(false);
@@ -241,6 +269,48 @@ export class FaturaWorkspace {
     if (!(await this.dialog.confirm(`Remover "${d.descricao}"?`))) return;
     try {
       await this.debitosStore.remover(d.id);
+      await this.carregarFatura(this.cartaoId());
+    } catch (e) {
+      await this.dialog.alert(mensagemErro(e));
+    }
+  }
+
+  protected abrirModalExcluirLote(): void {
+    this.selecionadosExcluirLote.set(new Set());
+    this.mostrarModalExcluirLote.set(true);
+  }
+
+  protected fecharModalExcluirLote(): void {
+    this.mostrarModalExcluirLote.set(false);
+  }
+
+  protected toggleSelecaoExcluirLote(id: string): void {
+    this.selecionadosExcluirLote.update((atual) => {
+      const novo = new Set(atual);
+      if (novo.has(id)) novo.delete(id);
+      else novo.add(id);
+      return novo;
+    });
+  }
+
+  protected marcarTodosExcluirLote(): void {
+    this.selecionadosExcluirLote.set(new Set(this.debitos().map((d) => d.id)));
+  }
+
+  protected desmarcarTodosExcluirLote(): void {
+    this.selecionadosExcluirLote.set(new Set());
+  }
+
+  protected async confirmarExclusaoLote(): Promise<void> {
+    const ids = [...this.selecionadosExcluirLote()];
+    if (ids.length === 0) return;
+    const confirmado = await this.dialog.confirm(
+      `Excluir ${ids.length} ${ids.length === 1 ? 'débito' : 'débitos'}? Essa ação não pode ser desfeita.`,
+    );
+    if (!confirmado) return;
+    try {
+      await Promise.all(ids.map((id) => this.debitosStore.remover(id)));
+      this.mostrarModalExcluirLote.set(false);
       await this.carregarFatura(this.cartaoId());
     } catch (e) {
       await this.dialog.alert(mensagemErro(e));
