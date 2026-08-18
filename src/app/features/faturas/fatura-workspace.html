@@ -23,7 +23,9 @@
     <div class="flex items-center gap-3 mb-1">
       <div
         class="w-5 h-3.5 rounded-[3px]"
-        [style.background]="'linear-gradient(135deg, ' + c.corCaracteristica + ', ' + c.corCaracteristica + '90)'"
+        [style.background]="
+          'linear-gradient(135deg, ' + c.corCaracteristica + ', ' + c.corCaracteristica + '90)'
+        "
       ></div>
       <a routerLink="/cartoes" class="text-xs text-ink-soft hover:text-ink transition">← Cartões</a>
     </div>
@@ -35,11 +37,15 @@
           <p class="font-display uppercase tracking-[0.16em] text-xs text-brass font-bold mb-1.5">
             {{ formatarMes(fatura.mesReferencia) }} · fatura aberta
           </p>
-          <div class="font-display text-4xl font-extrabold tracking-tight num">{{ centavosParaBRL(total()) }}</div>
+          <div class="font-display text-4xl font-extrabold tracking-tight num">
+            {{ centavosParaBRL(total()) }}
+          </div>
           @if (totalPorPessoa().length > 1) {
             <div class="flex flex-col gap-0.5 mt-2">
               @for (p of totalPorPessoa(); track p.id) {
-                <div class="text-xs text-ink-soft num">{{ p.nome }}: {{ centavosParaBRL(p.total) }}</div>
+                <div class="text-xs text-ink-soft num">
+                  {{ p.nome }}: {{ centavosParaBRL(p.total) }}
+                </div>
               }
             </div>
           }
@@ -68,7 +74,9 @@
           class="rounded-[10px] border border-hair p-5 mb-6"
           [style.background]="'linear-gradient(155deg, var(--color-panel-2), var(--color-panel))'"
         >
-          <h2 class="text-sm font-bold mb-4">{{ editandoId() ? 'Editar débito' : 'Novo débito' }}</h2>
+          <h2 class="text-sm font-bold mb-4">
+            {{ editandoId() ? 'Editar débito' : 'Novo débito' }}
+          </h2>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             <label class="text-xs text-ink-soft font-semibold sm:col-span-2">
               Descrição
@@ -93,7 +101,13 @@
               </select>
             </label>
             <label class="text-xs text-ink-soft font-semibold">
-              {{ editandoId() ? 'Valor desta parcela' : rascunho.tipo === 'parcelado' ? 'Valor total' : 'Valor' }}
+              {{
+                editandoId()
+                  ? 'Valor desta parcela'
+                  : rascunho.tipo === 'parcelado'
+                    ? 'Valor total'
+                    : 'Valor'
+              }}
               <input
                 type="number"
                 step="0.01"
@@ -174,26 +188,14 @@
             >
               Cancelar
             </button>
-            <button type="submit" class="text-sm font-semibold bg-teal text-bg px-4 py-2 rounded-md hover:opacity-90 transition">
+            <button
+              type="submit"
+              class="text-sm font-semibold bg-teal text-bg px-4 py-2 rounded-md hover:opacity-90 transition"
+            >
               Salvar
             </button>
           </div>
         </form>
-      }
-
-      @if (pessoasNaFatura().length > 1) {
-        <div class="flex gap-2 flex-wrap mb-3">
-          @for (p of pessoasNaFatura(); track p.id) {
-            <button
-              type="button"
-              (click)="togglePessoaFiltro(p.id)"
-              class="text-xs font-semibold px-3 py-1.5 rounded-full border transition"
-              [class]="pessoasFiltroSelecionadas().has(p.id) ? 'border-brass text-brass' : 'border-hair text-ink-soft'"
-            >
-              {{ p.nome }}
-            </button>
-          }
-        </div>
       }
 
       @if (debitos().length > 0) {
@@ -221,25 +223,66 @@
         </div>
       }
 
+      @if (pessoasNaFatura().length > 1) {
+        <div class="flex gap-2 flex-wrap mb-3">
+          @for (p of pessoasNaFatura(); track p.id) {
+            <button
+              type="button"
+              (click)="togglePessoaFiltro(p.id)"
+              class="text-xs font-semibold px-3 py-1.5 rounded-full border transition cursor-pointer"
+              [class]="
+                pessoasFiltroSelecionadas().has(p.id)
+                  ? 'border-brass text-brass'
+                  : 'border-hair text-ink-soft'
+              "
+            >
+              {{ p.nome }}
+            </button>
+          }
+        </div>
+      }
+
       <div>
         @for (d of debitosOrdenados(); track d.id) {
           <div class="flex justify-between items-center py-2.5 border-b border-hair text-sm">
             <div>
               <div class="font-semibold">{{ d.descricao }}</div>
-              <div class="text-ink-soft text-xs mt-0.5">{{ nomePessoa(d.pessoaId) }} · {{ nomeCategoria(d.categoriaId) }}</div>
+              <div class="text-ink-soft text-xs mt-0.5">
+                {{ nomePessoa(d.pessoaId) }} · {{ nomeCategoria(d.categoriaId) }}
+              </div>
             </div>
             <div class="flex items-center gap-3">
               <div class="font-semibold num flex items-center">
                 {{ centavosParaBRL(d.valor) }}
-                <app-tipo-badge [tipo]="d.tipo" [parcelaAtual]="d.parcelaAtual" [numeroParcelas]="d.numeroParcelas" />
+                <app-tipo-badge
+                  [tipo]="d.tipo"
+                  [parcelaAtual]="d.parcelaAtual"
+                  [numeroParcelas]="d.numeroParcelas"
+                />
               </div>
-              <button type="button" (click)="editarDebito(d)" class="text-ink-soft hover:text-ink text-xs">editar</button>
-              <button type="button" (click)="removerDebito(d)" class="text-ink-soft hover:text-ink text-xs">excluir</button>
+              <button
+                type="button"
+                (click)="editarDebito(d)"
+                class="text-ink-soft hover:text-ink text-xs"
+              >
+                editar
+              </button>
+              <button
+                type="button"
+                (click)="removerDebito(d)"
+                class="text-ink-soft hover:text-ink text-xs"
+              >
+                excluir
+              </button>
             </div>
           </div>
         } @empty {
           <p class="text-ink-soft text-sm py-4">
-            {{ debitos().length > 0 ? 'Nenhum débito para as pessoas selecionadas.' : 'Nenhum débito lançado nesta fatura ainda.' }}
+            {{
+              debitos().length > 0
+                ? 'Nenhum débito para as pessoas selecionadas.'
+                : 'Nenhum débito lançado nesta fatura ainda.'
+            }}
           </p>
         }
       </div>
@@ -253,14 +296,20 @@
             <div class="flex justify-between items-center mb-4">
               <h2 class="text-sm font-bold">Excluir débitos em lote</h2>
               <div class="flex gap-3 text-xs font-semibold text-brass">
-                <button type="button" (click)="marcarTodosExcluirLote()" class="hover:underline">Marcar todos</button>
-                <button type="button" (click)="desmarcarTodosExcluirLote()" class="hover:underline">Limpar</button>
+                <button type="button" (click)="marcarTodosExcluirLote()" class="hover:underline">
+                  Marcar todos
+                </button>
+                <button type="button" (click)="desmarcarTodosExcluirLote()" class="hover:underline">
+                  Limpar
+                </button>
               </div>
             </div>
 
             <div class="overflow-y-auto flex-1 -mx-1 px-1">
               @for (d of debitosOrdenados(); track d.id) {
-                <label class="flex items-center justify-between py-2.5 border-b border-hair text-sm cursor-pointer">
+                <label
+                  class="flex items-center justify-between py-2.5 border-b border-hair text-sm cursor-pointer"
+                >
                   <span class="flex items-center gap-2.5">
                     <input
                       type="checkbox"
@@ -271,10 +320,16 @@
                     <span>
                       <span class="font-semibold">{{ d.descricao }}</span>
                       <span class="text-ink-soft text-xs"> · {{ nomePessoa(d.pessoaId) }}</span>
-                      <app-tipo-badge [tipo]="d.tipo" [parcelaAtual]="d.parcelaAtual" [numeroParcelas]="d.numeroParcelas" />
+                      <app-tipo-badge
+                        [tipo]="d.tipo"
+                        [parcelaAtual]="d.parcelaAtual"
+                        [numeroParcelas]="d.numeroParcelas"
+                      />
                     </span>
                   </span>
-                  <span class="num text-ink-soft shrink-0 ml-2">{{ centavosParaBRL(d.valor) }}</span>
+                  <span class="num text-ink-soft shrink-0 ml-2">{{
+                    centavosParaBRL(d.valor)
+                  }}</span>
                 </label>
               }
             </div>
@@ -305,7 +360,9 @@
         [style.background]="'linear-gradient(155deg, var(--color-panel-2), var(--color-panel))'"
       >
         @if (!mostrarFormNovoMes()) {
-          <p class="text-ink-soft text-sm mb-4 text-center">Nenhuma fatura aberta para este cartão.</p>
+          <p class="text-ink-soft text-sm mb-4 text-center">
+            Nenhuma fatura aberta para este cartão.
+          </p>
           <div class="text-center">
             <button
               type="button"
@@ -328,12 +385,15 @@
 
           @if (candidatosRolloverDisponiveis().length > 0) {
             <p class="text-xs text-ink-soft font-semibold mb-2">
-              Parcelas e contas fixas em aberto de {{ formatarMes(ultimaFechada()!.mesReferencia) }} — escolha quais
-              continuam nesta fatura:
+              Parcelas e contas fixas em aberto de
+              {{ formatarMes(ultimaFechada()!.mesReferencia) }} — escolha quais continuam nesta
+              fatura:
             </p>
             <div class="mb-5">
               @for (d of candidatosRolloverDisponiveis(); track d.id) {
-                <label class="flex items-center justify-between py-2.5 border-b border-hair text-sm cursor-pointer">
+                <label
+                  class="flex items-center justify-between py-2.5 border-b border-hair text-sm cursor-pointer"
+                >
                   <span class="flex items-center gap-2.5">
                     <input
                       type="checkbox"
@@ -343,7 +403,11 @@
                     />
                     <span>
                       <span class="font-semibold">{{ d.descricao }}</span>
-                      <app-tipo-badge [tipo]="d.tipo" [parcelaAtual]="d.parcelaAtual" [numeroParcelas]="d.numeroParcelas" />
+                      <app-tipo-badge
+                        [tipo]="d.tipo"
+                        [parcelaAtual]="d.parcelaAtual"
+                        [numeroParcelas]="d.numeroParcelas"
+                      />
                     </span>
                   </span>
                   <span class="num text-ink-soft">{{ centavosParaBRL(d.valor) }}</span>
@@ -378,10 +442,15 @@
 
     @if (historicoDoCartao().length > 0) {
       <div class="mt-10">
-        <h2 class="text-xs uppercase tracking-[0.14em] text-ink-soft font-bold mb-3">Faturas fechadas deste cartão</h2>
+        <h2 class="text-xs uppercase tracking-[0.14em] text-ink-soft font-bold mb-3">
+          Faturas fechadas deste cartão
+        </h2>
         <div class="flex flex-col gap-1">
           @for (f of historicoDoCartao(); track f.id) {
-            <a [routerLink]="['/historico', f.id]" class="text-sm text-ink-soft hover:text-ink transition py-1">
+            <a
+              [routerLink]="['/historico', f.id]"
+              class="text-sm text-ink-soft hover:text-ink transition py-1"
+            >
               {{ formatarMes(f.mesReferencia) }} →
             </a>
           }
