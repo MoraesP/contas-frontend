@@ -85,8 +85,20 @@
   }
 
   @if (carregando()) {
-    <p class="text-ink-soft text-sm">Carregando…</p>
-  }
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      @for (i of [0, 1, 2, 3]; track i) {
+        <div class="rounded-[10px] border border-hair p-4" [style.background]="'linear-gradient(155deg, var(--color-panel-2), var(--color-panel))'">
+          <div class="flex justify-between items-start mb-3">
+            <app-skeleton width="24px" height="16px" rounded="3px" />
+            <app-skeleton width="72px" height="18px" rounded="999px" />
+          </div>
+          <app-skeleton width="100px" height="0.9rem" />
+          <div class="mt-2 mb-4"><app-skeleton width="150px" height="0.7rem" /></div>
+          <app-skeleton width="70px" height="0.7rem" />
+        </div>
+      }
+    </div>
+  } @else {
   <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
     @for (c of store.cartoes(); track c.id) {
       <div
@@ -130,4 +142,5 @@
       <p class="text-ink-soft text-sm">Nenhum cartão cadastrado ainda.</p>
     }
   </div>
+  }
 </div>

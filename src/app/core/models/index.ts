@@ -9,7 +9,6 @@ export interface Cartao {
 export interface Pessoa {
   id: string;
   nome: string;
-  cor?: string;
 }
 
 export interface Categoria {

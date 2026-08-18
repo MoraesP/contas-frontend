@@ -11,13 +11,13 @@ const URL_DEBITOS = `${environment.apiBaseUrl}/debitos`;
 interface CamposComuns {
   descricao: string;
   dataCompra: string;
-  pessoaId?: string;
+  pessoaId: string;
   categoriaId?: string;
 }
 
 export type NovoDebito =
   | (CamposComuns & { tipo: Exclude<TipoDebito, 'parcelado'>; valor: number })
-  | (CamposComuns & { tipo: 'parcelado'; valorTotal: number; numeroParcelas: number });
+  | (CamposComuns & { tipo: 'parcelado'; valorTotal: number; numeroParcelas: number; parcelaAtual?: number });
 
 export interface PatchDebito {
   descricao?: string;

@@ -7,12 +7,13 @@ import { CategoriasStore } from '../../core/store/categorias.store';
 import { centavosParaBRL } from '../../shared/utils/currency';
 import { formatarMes } from '../../shared/utils/mes';
 import { TipoBadge } from '../../shared/components/tipo-badge';
+import { Skeleton } from '../../shared/components/skeleton';
 import { Cartao, Debito, Fatura } from '../../core/models';
 
 @Component({
   selector: 'app-historico-detail',
   standalone: true,
-  imports: [RouterLink, TipoBadge],
+  imports: [RouterLink, TipoBadge, Skeleton],
   templateUrl: './historico-detail.html',
 })
 export class HistoricoDetail {

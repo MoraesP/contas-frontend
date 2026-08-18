@@ -12,6 +12,7 @@ import { mensagemErro } from '../../core/http/mensagem-erro';
 import { centavosParaBRL } from '../../shared/utils/currency';
 import { formatarMes, mesAtualIso, proximoMes } from '../../shared/utils/mes';
 import { TipoBadge } from '../../shared/components/tipo-badge';
+import { Skeleton } from '../../shared/components/skeleton';
 import { Debito, Fatura, TipoDebito } from '../../core/models';
 
 interface RascunhoDebito {
@@ -19,6 +20,7 @@ interface RascunhoDebito {
   valorReais: number | null;
   tipo: TipoDebito;
   numeroParcelas: number | null;
+  parcelaAtual: number | null;
   pessoaId: string;
   categoriaId: string;
   dataCompra: string;
@@ -30,6 +32,7 @@ function rascunhoVazio(): RascunhoDebito {
     valorReais: null,
     tipo: 'unico',
     numeroParcelas: null,
+    parcelaAtual: null,
     pessoaId: '',
     categoriaId: '',
     dataCompra: new Date().toISOString().slice(0, 10),
@@ -39,7 +42,7 @@ function rascunhoVazio(): RascunhoDebito {
 @Component({
   selector: 'app-fatura-workspace',
   standalone: true,
-  imports: [RouterLink, FormsModule, TipoBadge],
+  imports: [RouterLink, FormsModule, TipoBadge, Skeleton],
   templateUrl: './fatura-workspace.html',
 })
 export class FaturaWorkspace {
@@ -172,6 +175,7 @@ export class FaturaWorkspace {
       valorReais: d.valor / 100,
       tipo: d.tipo,
       numeroParcelas: d.numeroParcelas ?? null,
+      parcelaAtual: d.parcelaAtual ?? null,
       pessoaId: d.pessoaId ?? '',
       categoriaId: d.categoriaId ?? '',
       dataCompra: d.dataCompra.slice(0, 10),
@@ -187,7 +191,7 @@ export class FaturaWorkspace {
 
   protected async salvarDebito(): Promise<void> {
     const fatura = this.faturaAberta();
-    if (!fatura || !this.rascunho.descricao.trim() || !this.rascunho.valorReais) return;
+    if (!fatura || !this.rascunho.descricao.trim() || !this.rascunho.valorReais || !this.rascunho.pessoaId) return;
 
     try {
       const editandoId = this.editandoId();
@@ -198,14 +202,14 @@ export class FaturaWorkspace {
         await this.debitosStore.atualizar(editandoId, {
           descricao: this.rascunho.descricao.trim(),
           valor: Math.round(this.rascunho.valorReais * 100),
-          pessoaId: this.rascunho.pessoaId || undefined,
+          pessoaId: this.rascunho.pessoaId,
           categoriaId: this.rascunho.categoriaId || undefined,
           dataCompra: this.rascunho.dataCompra,
         });
       } else {
         const base = {
           descricao: this.rascunho.descricao.trim(),
-          pessoaId: this.rascunho.pessoaId || undefined,
+          pessoaId: this.rascunho.pessoaId,
           categoriaId: this.rascunho.categoriaId || undefined,
           dataCompra: this.rascunho.dataCompra,
         };
@@ -216,6 +220,7 @@ export class FaturaWorkspace {
             tipo: 'parcelado',
             valorTotal: Math.round(this.rascunho.valorReais * 100),
             numeroParcelas: this.rascunho.numeroParcelas ?? 2,
+            parcelaAtual: this.rascunho.parcelaAtual ?? undefined,
           });
         } else {
           await this.debitosStore.criar(fatura.id, {

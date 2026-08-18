@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { Dashboard } from './features/dashboard/dashboard';
 import { CartoesList } from './features/cartoes/cartoes-list';
 import { PessoasList } from './features/pessoas/pessoas-list';
+import { CategoriasList } from './features/categorias/categorias-list';
 import { FaturaWorkspace } from './features/faturas/fatura-workspace';
 import { HistoricoList } from './features/faturas/historico-list';
 import { HistoricoDetail } from './features/faturas/historico-detail';
@@ -14,6 +15,7 @@ export const routes: Routes = [
   { path: 'cartoes', component: CartoesList, canActivate: [authGuard] },
   { path: 'cartoes/:cartaoId/fatura', component: FaturaWorkspace, canActivate: [authGuard] },
   { path: 'pessoas', component: PessoasList, canActivate: [authGuard] },
+  { path: 'categorias', component: CategoriasList, canActivate: [authGuard] },
   { path: 'historico', component: HistoricoList, canActivate: [authGuard] },
   { path: 'historico/:faturaId', component: HistoricoDetail, canActivate: [authGuard] },
 ];

@@ -4,11 +4,12 @@ import { DashboardDataService } from './dashboard-data.service';
 import { CartoesStore } from '../../core/store/cartoes.store';
 import { centavosParaBRL } from '../../shared/utils/currency';
 import { TipoBadge } from '../../shared/components/tipo-badge';
+import { Skeleton } from '../../shared/components/skeleton';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [RouterLink, TipoBadge],
+  imports: [RouterLink, TipoBadge, Skeleton],
   templateUrl: './dashboard.html',
 })
 export class Dashboard {

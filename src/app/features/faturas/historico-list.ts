@@ -6,11 +6,12 @@ import { DebitosStore } from '../../core/store/debitos.store';
 import { formatarMes } from '../../shared/utils/mes';
 import { centavosParaBRL } from '../../shared/utils/currency';
 import { Fatura } from '../../core/models';
+import { Skeleton } from '../../shared/components/skeleton';
 
 @Component({
   selector: 'app-historico-list',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, Skeleton],
   templateUrl: './historico-list.html',
 })
 export class HistoricoList {

@@ -6,6 +6,7 @@ import { FaturasStore } from '../../core/store/faturas.store';
 import { DialogService } from '../../shared/services/dialog.service';
 import { mensagemErro } from '../../core/http/mensagem-erro';
 import { Cartao } from '../../core/models';
+import { Skeleton } from '../../shared/components/skeleton';
 
 type StatusFatura = 'aberta' | 'fechada' | 'nenhuma';
 
@@ -19,7 +20,7 @@ const RASCUNHO_VAZIO: RascunhoCartao = {
 @Component({
   selector: 'app-cartoes-list',
   standalone: true,
-  imports: [RouterLink, FormsModule],
+  imports: [RouterLink, FormsModule, Skeleton],
   templateUrl: './cartoes-list.html',
 })
 export class CartoesList {
