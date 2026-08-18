@@ -112,7 +112,7 @@ export class FaturaWorkspace {
   }
 
   protected nomeCategoria(id?: string): string {
-    return id ? (this.categoriasStore.porId(id)?.nome ?? 'Categoria removida') : 'Sem categoria';
+    return id ? (this.categoriasStore.porId(id)?.nome ?? 'Categoria removida') : 'N/A';
   }
 
   protected async iniciarNovoMes(): Promise<void> {
