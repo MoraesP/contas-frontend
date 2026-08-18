@@ -36,6 +36,13 @@
             {{ formatarMes(fatura.mesReferencia) }} · fatura aberta
           </p>
           <div class="font-display text-4xl font-extrabold tracking-tight num">{{ centavosParaBRL(total()) }}</div>
+          @if (totalPorPessoa().length > 1) {
+            <div class="flex flex-col gap-0.5 mt-2">
+              @for (p of totalPorPessoa(); track p.id) {
+                <div class="text-xs text-ink-soft num">{{ p.nome }}: {{ centavosParaBRL(p.total) }}</div>
+              }
+            </div>
+          }
         </div>
         <div class="flex gap-2">
           <button
@@ -174,6 +181,21 @@
         </form>
       }
 
+      @if (pessoasNaFatura().length > 1) {
+        <div class="flex gap-2 flex-wrap mb-3">
+          @for (p of pessoasNaFatura(); track p.id) {
+            <button
+              type="button"
+              (click)="togglePessoaFiltro(p.id)"
+              class="text-xs font-semibold px-3 py-1.5 rounded-full border transition"
+              [class]="pessoasFiltroSelecionadas().has(p.id) ? 'border-brass text-brass' : 'border-hair text-ink-soft'"
+            >
+              {{ p.nome }}
+            </button>
+          }
+        </div>
+      }
+
       @if (debitos().length > 0) {
         <div class="flex justify-between items-center mb-3 gap-3 flex-wrap">
           <label class="text-xs text-ink-soft font-semibold flex items-center gap-2">
@@ -216,7 +238,9 @@
             </div>
           </div>
         } @empty {
-          <p class="text-ink-soft text-sm py-4">Nenhum débito lançado nesta fatura ainda.</p>
+          <p class="text-ink-soft text-sm py-4">
+            {{ debitos().length > 0 ? 'Nenhum débito para as pessoas selecionadas.' : 'Nenhum débito lançado nesta fatura ainda.' }}
+          </p>
         }
       </div>
 

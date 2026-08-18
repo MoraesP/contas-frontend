@@ -17,6 +17,9 @@ import { Debito, Fatura, TipoDebito } from '../../core/models';
 
 type TipoOrdenacao = 'padrao' | 'valor' | 'pessoa' | 'parcela';
 
+/** Chave usada pra agrupar débitos sem pessoaId (não deveria existir em débitos novos, mas é defensivo). */
+const SEM_PESSOA = '__sem_pessoa__';
+
 interface RascunhoDebito {
   descricao: string;
   valorReais: number | null;
@@ -72,10 +75,33 @@ export class FaturaWorkspace {
 
   protected readonly total = computed(() => this.debitos().reduce((s, d) => s + d.valor, 0));
 
+  // --- filtro por pessoa ---
+  protected readonly pessoasFiltroSelecionadas = signal<Set<string>>(new Set());
+  protected readonly pessoasNaFatura = computed(() => {
+    const mapa = new Map<string, string>();
+    for (const d of this.debitos()) {
+      const chave = d.pessoaId ?? SEM_PESSOA;
+      if (!mapa.has(chave)) mapa.set(chave, this.nomePessoa(d.pessoaId));
+    }
+    return [...mapa.entries()].map(([id, nome]) => ({ id, nome })).sort((a, b) => a.nome.localeCompare(b.nome));
+  });
+  protected readonly totalPorPessoa = computed(() => {
+    const totais = new Map<string, number>();
+    for (const d of this.debitos()) {
+      const chave = d.pessoaId ?? SEM_PESSOA;
+      totais.set(chave, (totais.get(chave) ?? 0) + d.valor);
+    }
+    return this.pessoasNaFatura().map((p) => ({ ...p, total: totais.get(p.id) ?? 0 }));
+  });
+  protected readonly debitosFiltrados = computed(() => {
+    const selecionados = this.pessoasFiltroSelecionadas();
+    return this.debitos().filter((d) => selecionados.has(d.pessoaId ?? SEM_PESSOA));
+  });
+
   // --- ordenação da lista de débitos ---
   protected readonly ordenacao = signal<TipoOrdenacao>('padrao');
   protected readonly debitosOrdenados = computed(() => {
-    const lista = [...this.debitos()];
+    const lista = [...this.debitosFiltrados()];
     switch (this.ordenacao()) {
       case 'valor':
         return lista.sort((a, b) => b.valor - a.valor);
@@ -127,7 +153,9 @@ export class FaturaWorkspace {
       const fechadas = todas.filter((f) => f.status === 'fechada').sort((a, b) => b.mesReferencia.localeCompare(a.mesReferencia));
       this.historicoDoCartao.set(fechadas);
       this.ultimaFechada.set(fechadas[0] ?? null);
-      this.debitos.set(aberta ? await this.debitosStore.porFatura(aberta.id) : []);
+      const lista = aberta ? await this.debitosStore.porFatura(aberta.id) : [];
+      this.debitos.set(lista);
+      this.pessoasFiltroSelecionadas.set(new Set(lista.map((d) => d.pessoaId ?? SEM_PESSOA)));
     } catch (e) {
       await this.dialog.alert(mensagemErro(e));
     } finally {
@@ -141,6 +169,15 @@ export class FaturaWorkspace {
 
   protected nomeCategoria(id?: string): string {
     return id ? (this.categoriasStore.porId(id)?.nome ?? 'Categoria removida') : 'N/A';
+  }
+
+  protected togglePessoaFiltro(id: string): void {
+    this.pessoasFiltroSelecionadas.update((atual) => {
+      const novo = new Set(atual);
+      if (novo.has(id)) novo.delete(id);
+      else novo.add(id);
+      return novo;
+    });
   }
 
   protected async iniciarNovoMes(): Promise<void> {
