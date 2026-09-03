@@ -4,6 +4,7 @@ import { CartoesList } from './features/cartoes/cartoes-list';
 import { PessoasList } from './features/pessoas/pessoas-list';
 import { CategoriasList } from './features/categorias/categorias-list';
 import { Importacao } from './features/importacao/importacao';
+import { Mensal } from './features/mensal/mensal';
 import { FaturaWorkspace } from './features/faturas/fatura-workspace';
 import { HistoricoList } from './features/faturas/historico-list';
 import { HistoricoDetail } from './features/faturas/historico-detail';
@@ -18,6 +19,7 @@ export const routes: Routes = [
   { path: 'pessoas', component: PessoasList, canActivate: [authGuard] },
   { path: 'categorias', component: CategoriasList, canActivate: [authGuard] },
   { path: 'importar', component: Importacao, canActivate: [authGuard] },
+  { path: 'mensal', component: Mensal, canActivate: [authGuard] },
   { path: 'historico', component: HistoricoList, canActivate: [authGuard] },
   { path: 'historico/:faturaId', component: HistoricoDetail, canActivate: [authGuard] },
 ];
