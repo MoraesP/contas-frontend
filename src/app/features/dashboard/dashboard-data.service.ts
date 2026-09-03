@@ -9,6 +9,7 @@ export interface DebitoDashboard {
   id: string;
   descricao: string;
   valor: number;
+  dataCompra: string;
   tipo: TipoDebito;
   parcelaAtual?: number;
   numeroParcelas?: number;
@@ -51,6 +52,13 @@ export class DashboardDataService {
   readonly carregando = signal(false);
   readonly cartaoSelecionadoId = signal<string | null>(null);
 
+  /** null = ordem original (a que veio da API); 'asc'/'desc' = por dataCompra. */
+  readonly ordenacaoData = signal<'asc' | 'desc' | null>(null);
+
+  toggleOrdenacaoData(): void {
+    this.ordenacaoData.update((atual) => (atual === null ? 'desc' : atual === 'desc' ? 'asc' : null));
+  }
+
   async carregar(): Promise<void> {
     this.carregando.set(true);
     try {
@@ -67,7 +75,14 @@ export class DashboardDataService {
     const dados = this._dados();
     if (!dados) return [];
     const id = this.cartaoSelecionadoId();
-    return id ? dados.debitos.filter((d) => d.cartaoId === id) : dados.debitos;
+    const lista = id ? dados.debitos.filter((d) => d.cartaoId === id) : dados.debitos;
+
+    const ordem = this.ordenacaoData();
+    if (!ordem) return lista;
+    return [...lista].sort((a, b) => {
+      const diff = new Date(a.dataCompra).getTime() - new Date(b.dataCompra).getTime();
+      return ordem === 'asc' ? diff : -diff;
+    });
   });
 
   readonly totalMes = computed(() => this._dados()?.totalMes ?? 0);

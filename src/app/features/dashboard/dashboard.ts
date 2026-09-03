@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { DashboardDataService } from './dashboard-data.service';
 import { CartoesStore } from '../../core/store/cartoes.store';
 import { centavosParaBRL } from '../../shared/utils/currency';
+import { formatarDataCurta } from '../../shared/utils/mes';
 import { TipoBadge } from '../../shared/components/tipo-badge';
 import { Skeleton } from '../../shared/components/skeleton';
 
@@ -16,6 +17,7 @@ export class Dashboard {
   protected readonly data = inject(DashboardDataService);
   private readonly cartoesStore = inject(CartoesStore);
   protected readonly centavosParaBRL = centavosParaBRL;
+  protected readonly formatarDataCurta = formatarDataCurta;
 
   constructor() {
     void this.cartoesStore.carregar();
