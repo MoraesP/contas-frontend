@@ -36,6 +36,13 @@
     <div class="pb-6 border-b border-hair mb-6">
       <p class="font-display uppercase tracking-[0.16em] text-xs text-brass font-bold mb-1.5">Total geral</p>
       <div class="font-display text-4xl font-extrabold tracking-tight num">{{ centavosParaBRL(r.totalGeral) }}</div>
+      @if (totalPorPessoaGeral().length > 1) {
+        <div class="flex flex-col gap-0.5 mt-2">
+          @for (p of totalPorPessoaGeral(); track p.id) {
+            <div class="text-xs text-ink-soft num">{{ p.nome }}: {{ centavosParaBRL(p.total) }}</div>
+          }
+        </div>
+      }
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
