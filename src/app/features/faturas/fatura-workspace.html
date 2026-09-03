@@ -60,6 +60,14 @@
           </button>
           <button
             type="button"
+            (click)="exportarFatura()"
+            [disabled]="exportando()"
+            class="text-sm font-semibold border border-hair text-ink-soft px-4 py-2 rounded-md hover:text-ink transition disabled:opacity-40"
+          >
+            {{ exportando() ? 'Exportando…' : 'Exportar' }}
+          </button>
+          <button
+            type="button"
             (click)="fecharFatura()"
             class="text-sm font-semibold border border-hair text-ink-soft px-4 py-2 rounded-md hover:text-ink transition"
           >

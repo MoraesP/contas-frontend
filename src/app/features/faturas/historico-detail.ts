@@ -8,6 +8,8 @@ import { centavosParaBRL } from '../../shared/utils/currency';
 import { formatarMes } from '../../shared/utils/mes';
 import { TipoBadge } from '../../shared/components/tipo-badge';
 import { Skeleton } from '../../shared/components/skeleton';
+import { DialogService } from '../../shared/services/dialog.service';
+import { mensagemErro } from '../../core/http/mensagem-erro';
 import { Cartao, Debito, Fatura } from '../../core/models';
 
 @Component({
@@ -23,6 +25,7 @@ export class HistoricoDetail {
   private readonly cartoesStore = inject(CartoesStore);
   private readonly pessoasStore = inject(PessoasStore);
   private readonly categoriasStore = inject(CategoriasStore);
+  private readonly dialog = inject(DialogService);
 
   protected readonly centavosParaBRL = centavosParaBRL;
   protected readonly formatarMes = formatarMes;
@@ -64,5 +67,20 @@ export class HistoricoDetail {
 
   protected nomeCategoria(id?: string): string {
     return id ? (this.categoriasStore.porId(id)?.nome ?? 'Categoria removida') : 'N/A';
+  }
+
+  protected readonly exportando = signal(false);
+
+  protected async exportarFatura(): Promise<void> {
+    const fatura = this.fatura();
+    if (!fatura) return;
+    this.exportando.set(true);
+    try {
+      await this.faturasStore.exportar(fatura.id);
+    } catch (e) {
+      await this.dialog.alert(mensagemErro(e));
+    } finally {
+      this.exportando.set(false);
+    }
   }
 }

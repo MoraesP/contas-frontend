@@ -228,6 +228,21 @@ export class FaturaWorkspace {
     }
   }
 
+  protected readonly exportando = signal(false);
+
+  protected async exportarFatura(): Promise<void> {
+    const fatura = this.faturaAberta();
+    if (!fatura) return;
+    this.exportando.set(true);
+    try {
+      await this.faturasStore.exportar(fatura.id);
+    } catch (e) {
+      await this.dialog.alert(mensagemErro(e));
+    } finally {
+      this.exportando.set(false);
+    }
+  }
+
   protected novoDebito(): void {
     this.rascunho = rascunhoVazio();
     this.editandoId.set(null);

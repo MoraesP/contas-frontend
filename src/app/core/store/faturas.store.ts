@@ -54,4 +54,20 @@ export class FaturasStore {
       debitos: debitos.map((d) => normalizarId<Debito>(d)),
     };
   }
+
+  /** Baixa o .xlsx da fatura (nome do arquivo vem do header Content-Disposition do backend). */
+  async exportar(id: string): Promise<void> {
+    const resposta = await firstValueFrom(
+      this.http.get(`${URL_FATURAS}/${id}/exportar`, { observe: 'response', responseType: 'blob' }),
+    );
+    const disposicao = resposta.headers.get('Content-Disposition') ?? '';
+    const nomeArquivo = disposicao.match(/filename="(.+)"/)?.[1] ?? 'fatura.xlsx';
+
+    const url = URL.createObjectURL(resposta.body as Blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = nomeArquivo;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
 }
