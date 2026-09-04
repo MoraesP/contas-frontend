@@ -218,6 +218,7 @@
               <option value="valor">Valor</option>
               <option value="pessoa">Pessoa</option>
               <option value="parcela">Parcela</option>
+              <option value="data">Data</option>
             </select>
           </label>
           <button
@@ -252,10 +253,13 @@
       <div>
         @for (d of debitosOrdenados(); track d.id) {
           <div class="flex justify-between items-center py-2.5 border-b border-hair text-sm">
-            <div>
-              <div class="font-semibold">{{ d.descricao }}</div>
-              <div class="text-ink-soft text-xs mt-0.5">
-                {{ nomePessoa(d.pessoaId) }} · {{ nomeCategoria(d.categoriaId) }}
+            <div class="flex items-center gap-2.5">
+              <span class="text-ink-soft text-xs num w-[4.5rem] shrink-0">{{ formatarDataCurta(d.dataCompra) }}</span>
+              <div>
+                <div class="font-semibold">{{ d.descricao }}</div>
+                <div class="text-ink-soft text-xs mt-0.5">
+                  {{ nomePessoa(d.pessoaId) }} · {{ nomeCategoria(d.categoriaId) }}
+                </div>
               </div>
             </div>
             <div class="flex items-center gap-3">

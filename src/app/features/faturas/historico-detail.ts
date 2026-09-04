@@ -5,7 +5,7 @@ import { CartoesStore } from '../../core/store/cartoes.store';
 import { PessoasStore } from '../../core/store/pessoas.store';
 import { CategoriasStore } from '../../core/store/categorias.store';
 import { centavosParaBRL } from '../../shared/utils/currency';
-import { formatarMes } from '../../shared/utils/mes';
+import { formatarDataCurta, formatarMes } from '../../shared/utils/mes';
 import { TipoBadge } from '../../shared/components/tipo-badge';
 import { Skeleton } from '../../shared/components/skeleton';
 import { DialogService } from '../../shared/services/dialog.service';
@@ -29,12 +29,28 @@ export class HistoricoDetail {
 
   protected readonly centavosParaBRL = centavosParaBRL;
   protected readonly formatarMes = formatarMes;
+  protected readonly formatarDataCurta = formatarDataCurta;
 
   protected readonly carregando = signal(true);
   protected readonly fatura = signal<Fatura | null>(null);
   protected readonly cartao = signal<Cartao | undefined>(undefined);
   protected readonly debitos = signal<Debito[]>([]);
   protected readonly total = computed(() => this.debitos().reduce((s, d) => s + d.valor, 0));
+
+  /** null = ordem original; 'asc'/'desc' = por dataCompra. */
+  protected readonly ordenacaoData = signal<'asc' | 'desc' | null>(null);
+  protected readonly debitosOrdenados = computed(() => {
+    const ordem = this.ordenacaoData();
+    if (!ordem) return this.debitos();
+    return [...this.debitos()].sort((a, b) => {
+      const diff = new Date(a.dataCompra).getTime() - new Date(b.dataCompra).getTime();
+      return ordem === 'asc' ? diff : -diff;
+    });
+  });
+
+  protected toggleOrdenacaoData(): void {
+    this.ordenacaoData.update((atual) => (atual === null ? 'desc' : atual === 'desc' ? 'asc' : null));
+  }
 
   constructor() {
     void this.pessoasStore.carregar();

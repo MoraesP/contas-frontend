@@ -10,12 +10,12 @@ import { FaturaWorkflowService } from './fatura-workflow.service';
 import { DialogService } from '../../shared/services/dialog.service';
 import { mensagemErro } from '../../core/http/mensagem-erro';
 import { centavosParaBRL } from '../../shared/utils/currency';
-import { formatarMes, mesAtualIso, proximoMes } from '../../shared/utils/mes';
+import { formatarDataCurta, formatarMes, mesAtualIso, proximoMes } from '../../shared/utils/mes';
 import { TipoBadge } from '../../shared/components/tipo-badge';
 import { Skeleton } from '../../shared/components/skeleton';
 import { Debito, Fatura, TipoDebito } from '../../core/models';
 
-type TipoOrdenacao = 'padrao' | 'valor' | 'pessoa' | 'parcela';
+type TipoOrdenacao = 'padrao' | 'valor' | 'pessoa' | 'parcela' | 'data';
 
 /** Chave usada pra agrupar débitos sem pessoaId (não deveria existir em débitos novos, mas é defensivo). */
 const SEM_PESSOA = '__sem_pessoa__';
@@ -63,6 +63,7 @@ export class FaturaWorkspace {
 
   protected readonly centavosParaBRL = centavosParaBRL;
   protected readonly formatarMes = formatarMes;
+  protected readonly formatarDataCurta = formatarDataCurta;
 
   protected readonly cartao = computed(() => this.cartoesStore.porId(this.cartaoId()));
 
@@ -109,6 +110,8 @@ export class FaturaWorkspace {
         return lista.sort((a, b) => this.nomePessoa(a.pessoaId).localeCompare(this.nomePessoa(b.pessoaId)));
       case 'parcela':
         return lista.sort((a, b) => this.grupoParcela(a) - this.grupoParcela(b) || (b.numeroParcelas ?? 0) - (a.numeroParcelas ?? 0));
+      case 'data':
+        return lista.sort((a, b) => new Date(b.dataCompra).getTime() - new Date(a.dataCompra).getTime());
       default:
         return lista;
     }
